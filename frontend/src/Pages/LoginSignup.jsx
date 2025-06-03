@@ -39,7 +39,6 @@ const LoginSignup = () => {
 
   try {
     const response = await axios.post(url, payload);
-    console.log("Response:", response.data);
 
     if (response.data.success) {
       alert(response.data.message);
