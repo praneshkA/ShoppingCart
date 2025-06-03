@@ -13,7 +13,7 @@ import Shop from './Pages/Shop';
 import ShopCategory from './Pages/ShopCategory';
 import Product from './Pages/Product';
 import Cart from './Pages/Cart';
-import MyOrder from './Pages/Myorder.jsx';
+import MyOrder from './Pages/Myorder';
 function App() {
   return (
     <div>
