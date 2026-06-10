@@ -12,20 +12,17 @@ const ShopContextProvider = (props) => {
   const [cartItems, setCartItems] = useState(getDefaultCart());
 
   useEffect(() => {
-    fetch("https://fullstackproject-480y.onrender.com/api/allproducts")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then((data) => {
-        console.log("Products fetched:", data);
-        setAllProducts(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching products:", error);
-      });
+    const loadProducts = async () => {
+      try {
+        const response = await axios.get("https://fullstackproject-480y.onrender.com/api/allproducts");
+        console.log("Products fetched:", response.data);
+        setAllProducts(response.data);
+      } catch (error) {
+        console.error("Error fetching products:", error?.response?.data || error.message || error);
+      }
+    };
+
+    loadProducts();
   }, []);
 
   const fetchCart = async () => {

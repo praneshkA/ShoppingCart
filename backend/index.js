@@ -8,17 +8,21 @@ const cors = require("cors");
 const fs = require("fs");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+
+dotenv.config();
+require("dotenv").config();
 
 const port = process.env.PORT || 4000;
-const secretKey = "your_secret_key";
-
+const secretKey = process.env.JWT_SECRET;
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // MongoDB connection
-mongoose.connect("mongodb+srv://pranesh:12345@cluster0.3b7tk9u.mongodb.net/e-commerce?retryWrites=true&w=majority")
+mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected successfully"))
-  .catch((err) => console.log("MongoDB connection error:", err));
+  .catch((err) => console.error("MongoDB connection error:", err));
 
 // File upload setup
 const uploadDir = path.join(__dirname, "upload/images");
@@ -85,11 +89,15 @@ app.get("/api/allproducts", async (req, res) => {
   try {
     const products = await Product.find({});
     res.json(products);
-  } catch {
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+  } catch (error) {
+    console.error("Error in /api/allproducts:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
   }
 });
-
 app.get("/api/products/:category", async (req, res) => {
   try {
     const products = await Product.find({ category: req.params.category });
@@ -111,32 +119,42 @@ app.get("/api/product/:id", async (req, res) => {
 
 // Auth routes
 app.post("/api/login", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ success: false, message: "Email and password are required" });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ success: false, message: "Email and password are required" });
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-  const valid = await bcrypt.compare(password, user.password);
-  if (!valid) return res.status(401).json({ success: false, message: "Invalid password" });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(401).json({ success: false, message: "Invalid password" });
 
-  const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: "1h" });
-  res.json({ success: true, token, userId: user._id });
+    const token = jwt.sign({ userId: user._id }, secretKey, { expiresIn: "1h" });
+    res.json({ success: true, token, userId: user._id });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 });
 
 app.post("/api/signup", async (req, res) => {
-  const { username, email, password } = req.body;
-  if (!username || !email || !password) return res.status(400).json({ success: false, message: "All fields are required" });
+  try {
+    const { username, email, password } = req.body;
+    if (!username || !email || !password) return res.status(400).json({ success: false, message: "All fields are required" });
 
-  const exists = await User.findOne({ email });
-  if (exists) return res.status(409).json({ success: false, message: "User already exists" });
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(409).json({ success: false, message: "User already exists" });
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = new User({ username, email, password: hashedPassword });
-  await newUser.save();
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ username, email, password: hashedPassword });
+    await newUser.save();
 
-  const token = jwt.sign({ userId: newUser._id }, secretKey, { expiresIn: "1h" });
-  res.json({ success: true, token });
+    const token = jwt.sign({ userId: newUser._id }, secretKey, { expiresIn: "1h" });
+    res.json({ success: true, token, userId: newUser._id });
+  } catch (err) {
+    console.error("Signup error:", err);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
 });
 
 // Product image upload

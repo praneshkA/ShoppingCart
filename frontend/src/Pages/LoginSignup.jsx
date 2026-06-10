@@ -26,7 +26,7 @@ const LoginSignup = () => {
   };
 
   // Handle form submission for login/signup
-  const handleSubmit = async (e) => {
+ const handleSubmit = async (e) => {
   e.preventDefault();
 
   const endpoint = isLogin ? '/api/login' : '/api/signup';
@@ -35,21 +35,28 @@ const LoginSignup = () => {
     ? { email: formData.email, password: formData.password }
     : formData;
 
-  console.log("Submitting", payload);
-
   try {
     const response = await axios.post(url, payload);
 
     if (response.data.success) {
-      alert(response.data.message);
+      // If login, store token
       if (isLogin && response.data.token) {
         localStorage.setItem('authToken', response.data.token);
-        localStorage.setItem('userId', response.data.userId);
+        localStorage.setItem('userId', response.data.userId); // if available
+
+        // Optionally: verify token exists
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          console.log('Login successful. Auth token stored:', token);
+        } else {
+          console.warn('Login response had no token.');
+        }
       }
+
       navigate('/');
     }
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Auth error:", error?.response?.data || error.message || error);
     if (error.response) {
       alert(error.response.data.message || 'Something went wrong');
     } else {
@@ -57,6 +64,8 @@ const LoginSignup = () => {
     }
   }
 };
+
+
 
 
   return (
